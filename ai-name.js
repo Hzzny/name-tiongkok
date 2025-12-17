@@ -1,51 +1,57 @@
 import OpenAI from "openai";
 
+const nameCache = {};
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  try {
-    const { name } = req.body;
+  const userName = (req.body.name || "").trim();
 
-    if (!name) {
-      return res.status(400).json({ error: "Nama wajib diisi" });
-    }
+  if (!userName) {
+    return res.status(400).json({ error: "Nama tidak boleh kosong" });
+  }
 
-    const client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
+  // ⭐ PENGECUALIAN KHUSUS (VIONA)
+  if (userName.toLowerCase() === "viona") {
+    return res.json({
+      hanzi: "维奥娜",
+      pinyin: "Wéi ào nà",
+      meaning: "Anggun dan memiliki kedalaman makna",
+      description:
+        "Nama ini mencerminkan sosok yang elegan, tenang, dan misterius, dengan keindahan yang tidak mencolok namun berkesan, serta memberi kesan lembut dan berkelas."
     });
+  }
 
-    const completion = await client.chat.completions.create({
-      model: "gpt-4.1-mini",
-      messages: [
-        {
-          role: "system",
-          content: "Kamu adalah ahli penamaan Mandarin. Jawab SELALU dalam format JSON."
-        },
-        {
-          role: "user",
-          content: `
-Buatkan nama Mandarin dari nama "${name}".
-Format JSON WAJIB seperti ini:
+  if (nameCache[userName]) {
+    return res.json(nameCache[userName]);
+  }
 
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+  });
+
+  const prompt = `
+Buatkan SATU nama Mandarin untuk "${userName}".
+Balas PERSIS format JSON:
 {
   "hanzi": "",
   "pinyin": "",
-  "arti": "",
-  "deskripsi": ""
+  "meaning": "",
+  "description": ""
 }
-          `
-        }
-      ]
-    });
+`;
 
-    const text = completion.choices[0].message.content;
-    const result = JSON.parse(text);
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.2
+  });
 
-    res.status(200).json(result);
+  const result = JSON.parse(completion.choices[0].message.content);
+  nameCache[userName] = result;
 
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  res.json(result);
 }
+
