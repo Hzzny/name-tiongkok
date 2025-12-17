@@ -7,18 +7,17 @@ function generateName() {
     return;
   }
 
-  // (opsional) disable tombol biar tidak spam
+  // disable tombol biar tidak spam
   const btn = document.querySelector("button");
   btn.disabled = true;
   btn.innerText = "Generating...";
 
-  fetch("/api/ai-name", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ name })
-  })
+    fetch("/api/ai-name", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name })
+    })
+
     .then(res => {
       if (!res.ok) throw new Error("Server error");
       return res.json();
@@ -39,3 +38,4 @@ function generateName() {
       btn.innerText = "Generate";
     });
 }
+
